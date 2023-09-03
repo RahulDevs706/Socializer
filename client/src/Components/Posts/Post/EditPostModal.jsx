@@ -3,7 +3,7 @@ import { Box, Dialog, DialogContent, DialogTitle, IconButton, InputBase, Stack, 
 import React, { useEffect, useState } from 'react'
 import { Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
-import { getPost, updatedPost } from '../../../Redux/Slice/postSlice';
+import { clearPostMsg, getPost, updatedPost } from '../../../Redux/Slice/postSlice';
 import ArrowBack from '@mui/icons-material/ArrowBack';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -28,8 +28,11 @@ const EditPostModal = ({open, setOpen, postId}) => {
     useEffect(() => {
         if(getSinglePost.success){
             setPostTxt(getSinglePost.post.postText)
+            
+            dispatch(clearPostMsg("CLEAR_POST_STATE"))
+            
         }
-    }, [getSinglePost]);
+    }, [getSinglePost, dispatch]);
 
     const inputStyle = {
         width: "100%",
@@ -37,9 +40,13 @@ const EditPostModal = ({open, setOpen, postId}) => {
         border:'none',
     }
 
-    if(updatePostState.success){
-        setOpen(false);
-    }
+    useEffect(()=>{
+        if(updatePostState.success){
+            setOpen(false);
+            dispatch(clearPostMsg("CLEAR_POST_STATE"))
+            dispatch(clearPostMsg("UP"));
+        }
+    },[updatePostState.success, dispatch]);
 
     const update = ()=>{
         let data = {}
@@ -50,7 +57,7 @@ const EditPostModal = ({open, setOpen, postId}) => {
         dispatch(updatedPost({
             txt:postTxt,
             id:postId
-        }));
+        })).then(()=>setOpen(false));
     }
 
   return (
@@ -65,7 +72,7 @@ const EditPostModal = ({open, setOpen, postId}) => {
                         Edit Post
                     </Typography>
                     <Box flexGrow={1} />
-                    <LoadingButton loading={updatePostState?.loading} loadingPosition="start"  variant="contained" size="large" onClick={update} >
+                    <LoadingButton loading={updatePostState?.loading} loadingPosition="start"  variant="contained" size="large" onClick={()=>update()} >
                         Edit
                     </LoadingButton>
                 </Stack>

@@ -16,6 +16,13 @@ const initialState={
         message:"",
         posts:[]
     },
+    getProfilePosts:{
+        loading:false,
+        success:false,
+        error:false,
+        message:"",
+        posts:[]
+    },
     postLike:{
         success:false,
         error:false,
@@ -87,7 +94,23 @@ export const createPost = createAsyncThunk('post/create', async(action)=>{
 export const getMyPost = createAsyncThunk('post/getMine', async()=>{
     try {
         let response ;
-        await axios.get(`/api/v1/post/getPost/Home`).then(res=>{
+        await axios.get(`/api/v1/post/getPost/home`).then(res=>{
+            if(res.status!==304)
+                response = res.data;
+        }).catch(err=>{
+            response = err.response.data
+        })
+
+        return response;
+    }catch(err){
+     console.error(err)   
+    }
+})
+
+export const getProfilePostsfun = createAsyncThunk('post/getProfilePosts', async(action)=>{
+    try {
+        let response ;
+        await axios.get(`/api/v1/post/getPost/profile/${action}`).then(res=>{
             if(res.status!==304)
                 response = res.data;
         }).catch(err=>{
@@ -206,7 +229,7 @@ const postSlice = createSlice({
     initialState,
     reducers:{
         clearPostMsg:(state, action)=>{
-            let {createPost, postLike, postComments, deletePostState, updatePostState, getMyPosts, getSinglePost} = state;
+            let {createPost, postLike, postComments, deletePostState, updatePostState, getMyPosts, getSinglePost, getProfilePosts} = state;
 
             if(action.payload==="PL"){
                 postLike.error = false
@@ -246,12 +269,17 @@ const postSlice = createSlice({
                 getMyPosts.success= false
                 getMyPosts.message=""
             }
+            if(action.payload==="GP_PRO"){
+                getProfilePosts.error = false
+                getProfilePosts.success= false
+                getProfilePosts.message=""
+            }
             if(action.payload==="CLEAR_POST_STATE"){
                 getSinglePost.error= false;
                 getSinglePost.success=false;
-                getSinglePost.loading=true;
+                // getSinglePost.loading=true;
                 getSinglePost.message="";
-                getSinglePost.post={};
+                // getSinglePost.post={};
             }
         }
     },
@@ -270,6 +298,7 @@ const postSlice = createSlice({
                 state.createPost.success = true;
                 state.createPost.message = action.payload.message
                 state.createPost.notification = action.payload.notification
+                state.getMyPosts.posts = action.payload.homePosts
             }
         },
         [getMyPost.pending]: (state)=>{
@@ -285,13 +314,23 @@ const postSlice = createSlice({
                 state.getMyPosts.success = true;
                 state.getMyPosts.message = action.payload.message
                 state.getMyPosts.posts = action.payload.posts
-                // action.payload.posts.forEach(post=>{
-                //     if((state.getMyPosts.posts.includes(post))){
-                //         return;
-                //     }else{
-                //         state.getMyPosts.posts.push(post)
-                //     }
-                // })
+                
+            }
+        },
+        [getProfilePostsfun.pending]: (state)=>{
+            state.getProfilePosts.loading = true;
+        },
+        [getProfilePostsfun.fulfilled]: (state, action)=>{
+            state.getProfilePosts.loading = false;
+            
+            if(action.payload.success===false){
+                state.getProfilePosts.message = action.payload.message;
+                state.getProfilePosts.error = true
+            }else{
+                state.getProfilePosts.success = true;
+                state.getProfilePosts.message = action.payload.message
+                state.getProfilePosts.posts = action.payload.posts
+                
             }
         },
         [getPost.pending]: (state)=>{
@@ -319,6 +358,9 @@ const postSlice = createSlice({
                 state.postLike.message = action.payload.message;
                 state.postLike.notification = action.payload.notification
                 state.postLike.type = action.payload.type
+                state.getProfilePosts.posts = action.payload.profilePosts
+                state.getMyPosts.posts = action.payload.homePosts
+                state.getSinglePost.post = action.payload.post
             }
         },
         [getCommentsPostSingle.pending]: (state)=>{
@@ -333,6 +375,8 @@ const postSlice = createSlice({
             }else{
                 state.postComments.get.success = true;
                 state.postComments.get.comments = action.payload.comments
+                state.getProfilePosts.posts = action.payload.profilePosts
+                state.getMyPosts.posts = action.payload.homePosts
             }
         },
         [createComment.pending]: (state)=>{
@@ -348,6 +392,9 @@ const postSlice = createSlice({
                 state.postComments.create.success = true;
                 state.postComments.create.message = action.payload.message;
                 state.postComments.create.notification = action.payload.notification;
+                state.getProfilePosts.posts = action.payload.profilePosts
+                state.getMyPosts.posts = action.payload.homePosts
+                state.getSinglePost.post = action.payload.post
             }
         },
         [deleteComment.pending]: (state)=>{
@@ -362,6 +409,9 @@ const postSlice = createSlice({
             }else{
                 state.postComments.delete.success = true;
                 state.postComments.delete.message = action.payload.message;
+                state.getProfilePosts.posts = action.payload.profilePosts
+                state.getMyPosts.posts = action.payload.homePosts
+                state.getSinglePost.post = action.payload.post
             }
         },
         [deletePost.pending]: (state)=>{
@@ -376,6 +426,8 @@ const postSlice = createSlice({
             }else{
                 state.deletePostState.success = true;
                 state.deletePostState.message = action.payload.message;
+                state.getProfilePosts.posts = action.payload.profilePosts
+                state.getMyPosts.posts = action.payload.homePosts
             }
         },
         [updatedPost.pending]: (state)=>{
@@ -390,11 +442,14 @@ const postSlice = createSlice({
             }else{
                 state.updatePostState.success = true;
                 state.updatePostState.message = action.payload.message;
+                state.getProfilePosts.posts = action.payload.profilePosts
+                state.getMyPosts.posts = action.payload.homePosts
+                state.getSinglePost.post = action.payload.post
             }
         },
 
     }
-})
+}) 
 
 export const {clearPostMsg} = postSlice.actions;
 export default postSlice.reducer;

@@ -10,8 +10,9 @@ import { clearPostMsg, deletePost, getMyPost, getPost, likeAPost } from '../../.
 import { useState } from 'react';
 import CommentModal from './commentPart/CommentModal';
 import EditPostModal from './EditPostModal';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { viewProfile } from '../../../Redux/Slice/userSlice';
+import { useSnackbar } from 'notistack';
 
 const PostLoader = ()=>{
     return(
@@ -41,6 +42,8 @@ const PostLoader = ()=>{
 
 const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, likedBy, comments, createdBy}) => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { enqueueSnackbar } = useSnackbar();
     const {user} = useSelector(s=>s.user);
     const {postLike, deletePostState} = useSelector(s=>s.post);
 
@@ -76,10 +79,10 @@ const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, l
         }
     }, []);
 
-    if( (location.pathname==="/") && (postLike.success || postLike.error)){
-        dispatch(getMyPost())
-        dispatch(clearPostMsg("PL"))
-    }
+    // if( (location.pathname==="/") && (postLike.success || postLike.error)){
+    //     dispatch(clearPostMsg("PL"))
+    //     dispatch(clearPostMsg("GP_PRO"));
+    // }
 
 
 
@@ -96,33 +99,32 @@ const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, l
   
     useEffect(() => {
       if(deletePostState.success){
-        dispatch(getMyPost())
+        if(location.pathname===`/profile/${proUser?._id}/${id}`){
+            navigate(-1);
+        }
+        dispatch(clearPostMsg("PD"));
       }
-    }, [deletePostState, dispatch]);
+    }, [deletePostState, dispatch, location.pathname, navigate, proUser?._id, id]);
 
 
-    useEffect(() => {
-      if((location.pathname===`/profile/${proUser?._id}` || location.pathname===`/profile/${proUser?._id}/${id}`)){
-          if(postLike.success || postLike.error){
-            // dispatch(getMyPost())
-            dispatch(viewProfile(proUser._id))
-            dispatch(getPost(id))
-            dispatch(clearPostMsg("PL"))
-        }    
-      }
-    }, [dispatch, location,proUser, deletePostState, postLike, id]);
+    // useEffect(() => {
+    //   if((location.pathname===`/profile/${proUser?._id}` || location.pathname===`/profile/${proUser?._id}/${id}`)){
+    //       if(postLike.success || postLike.error){
+
+    //         dispatch(clearPostMsg("PL"))
+    //         dispatch(clearPostMsg("GP_PRO"));
+
+    //     }    
+    //   }
+    // }, [dispatch, location,proUser, deletePostState, postLike, id]);
 
     // console.log(proUser._id, location);
 
-    
 
     const handlePostDelete = ()=>{
       dispatch(deletePost(id))
       handleClose();
     }
-  
-
-
 
 
     let likesText ="";
@@ -143,8 +145,22 @@ const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, l
     }else{
         commentText = `${comments?.length} Comments`
     }
+
+    const handleEditClick=()=>{
+        setOpenEdit(true);
+        handleClose();
+    }
+
+    const handleProfile=(id)=>{
+            navigate(`/profile/${id}`)
+    }
+
+    // init the notistack
+
     
-    let subBody = `${likesText} & ${commentText}`
+
+
+    
 
   return (
    <Fragment>
@@ -157,7 +173,7 @@ const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, l
             <Card elevation="5" sx={{  width:{xs:"100%", sm:"100%"}}}>
                 <CardHeader
                     avatar={
-                        <Avatar src={avatarImg} alt={name} size="large" aria-label="avatar" />
+                        <Avatar sx={{cursor:"pointer"}} onClick={()=>handleProfile(createdBy)} src={avatarImg} alt={name} size="large" aria-label="avatar" />
                     }
                     action={
                         isUserPost && (
@@ -166,7 +182,7 @@ const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, l
                         </IconButton>
                         )
                     }
-                    title={<Typography variant='body1' color="primary">{name}</Typography> }
+                    title={<Typography sx={{cursor:"pointer"}} onClick={()=>handleProfile(createdBy)} variant='body1' color="primary">{name}</Typography> }
                     subheader={<Typography variant="subtitle2" color="primary.light">{createdAt}</Typography>}
                 />
                 
@@ -186,18 +202,26 @@ const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, l
                 
                 <CardActions disableSpacing>
                     <Stack width="100%" spacing={0}>
-                        <Typography gutterBottom ml={2} align='left' variant="subtitle2" color={likedBy?.length!==0?"text.primary":"#bbb"}>
-                            {subBody}
-                        </Typography>
+                        {/* <Stack direction="row" spacing={1}  >
+                            <Typography gutterBottom ml={2} align='left' variant="subtitle2" color={likedBy?.length!==0?"text.primary":"#bbb"}>{likesText}</Typography>
+                            <Typography gutterBottom ml={2} align='left' variant="subtitle2" color={comments?.length!==0?"text.primary":"#bbb"}>{commentText}</Typography>
+                        </Stack> */}
                         <Divider flexItem />
-                        <Box>
-                            <IconButton onClick={like} size='large' aria-label="add to favorites">
-                                {isLiked? (<FavoriteIcon fontSize='2.5rem' sx={{color:"tomato"}} />):(<FavoriteBorderIcon fontSize='2.5rem' />)}
-                            </IconButton>
-                            <IconButton onClick={()=>setOpenComment(true)} size='large' aria-label="Comment">
-                                <CommentIcon fontSize='2.5rem' />
-                            </IconButton>
-                       </Box>
+                        <Stack direction='row' spacing={3} alignItems={'center'}>
+                            <Stack direction='row' spacing={0.2} alignItems={'center'}>
+                                <IconButton onClick={like} size='large' aria-label="add to favorites">
+                                    {isLiked? (<FavoriteIcon fontSize='2.5rem' sx={{color:"tomato"}} />):(<FavoriteBorderIcon fontSize='2.5rem' />)}
+                                </IconButton>
+                                <Typography sx={{cursor:likedBy?.length!==0&&"pointer"}} ml={2} align='left' variant="subtitle2" fontSize="1rem" color={likedBy?.length!==0?"text.primary":"#bbb"}>{likesText}</Typography>
+                            </Stack>
+
+                            <Stack direction="row" spacing={0.2} alignItems={'center'}>
+                                <IconButton onClick={()=>setOpenComment(true)} size='large' aria-label="Comment">
+                                    <CommentIcon fontSize='2.5rem' />
+                                </IconButton>
+                                <Typography ml={2} align='left' variant="subtitle2" fontSize="1rem" color={comments?.length!==0?"text.primary":"#bbb"}>{commentText}</Typography>
+                            </Stack>
+                       </Stack>
                     </Stack>
                 </CardActions>
             </Card>
@@ -210,11 +234,11 @@ const PostCard = ({ loading, id,avatarImg, name, postImg, postText, createdAt, l
             onClose={handleClose}
         >
             <MenuItem disabled={deletePost.loading} onClick={handlePostDelete}>Delete</MenuItem>
-            <MenuItem onClick={()=>{setOpenEdit(true); handleClose()}}  >Edit</MenuItem>
+            <MenuItem onClick={()=>handleEditClick()}  >Edit</MenuItem>
         </Menu>
-        <EditPostModal open={openEdit} setOpen={setOpenEdit} postId={id} />
     </Fragment>
     )}
+    <EditPostModal open={openEdit} setOpen={setOpenEdit} postId={id} />
    </Fragment>
   )
 }

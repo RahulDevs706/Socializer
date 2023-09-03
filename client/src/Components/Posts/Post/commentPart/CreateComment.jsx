@@ -20,37 +20,19 @@ const CreateComment = ({id}) => {
     useEffect(() => {
         if(create.success){
             dispatch(getCommentsPostSingle(id))
-
-            dispatch(clearPostMsg("CC"))
+            setComment(""); 
         }
 
     }, [create.success, dispatch, id]);
 
-    useEffect(() => {
-        const option = {
-            variant:"info",
-            anchorOrigin:{
-                vertical:"top",
-                horizontal:"center",
-            },
-        }
 
-        if(create.success || create.error){
-            enqueueSnackbar(create.message, option)
-            dispatch(getMyPost());
-        }
-
-        if(create.success){
-            setComment("");   
-        }
-    }, [create.error, create.message, create.success, enqueueSnackbar]);
 
 
 
     const handleComment = (e)=>{
         e.preventDefault();
         if(comment===""){
-            enqueueSnackbar("Comment cannot be empty", {variant:"error", anchorOrigin:{vertical:"top", horizontal:'center'}})
+            enqueueSnackbar("Comment cannot be empty", {variant:"info", anchorOrigin:{vertical:"top", horizontal:'center'}})
             return
         }
         dispatch(createComment({

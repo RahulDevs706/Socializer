@@ -35,25 +35,6 @@ async function getMutuals(user){
     return resObj? resObj: [];
 }
 
-// function filterByLocation(location, users, uID){
-
-
-//     const filteredUser=[];
-
-//     users.forEach(u=>{
-//         const { city, state}= u.address;
-
-
-//         if((location.city===city || location.state===state) && u._id.toString()!==uID.toString()){
-//             filteredUser.push(u);
-//         }
-//     })
-
-//     // console.log(filteredUser);
-
-//     return filteredUser? filteredUser:[];
-
-// }
 
 function filterByLocation(location, currLocation=null, users, uID){
 
@@ -164,7 +145,7 @@ async function getRecommendedUsers(user, currAddress=null) {
 
     const final = shuffle(locationFiltered);
 
-    console.log(final);
+    // console.log(final);
 
     return final
 }

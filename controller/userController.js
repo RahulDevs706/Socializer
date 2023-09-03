@@ -150,21 +150,30 @@ exports.completeUser = catchAsyncError(async(req, res, next)=>{
     })
 })
 
-exports.searchUser = catchAsyncError(async(req, res, next)=>{
-    
-    const results = new ApiFeatures(User.find(), req.query).search()
+exports.searchUser = catchAsyncError(async (req, res, next) => {
+    const { keyword } = req.query;
 
-    let temp = await results.user.clone();
+    let query = User.find();
 
-    const searchRes= temp.filter(i=>{
-        return i._id.toString() !== req.user.id
-    })
+    if (keyword) {
+        query = query.find({ name: { $regex: `^${keyword}`, $options: "i" } });
+        query = query.sort({ name: 1 }); // Sort by name in ascending order when keyword is provided
+    } else {
+        return res.status(200).json({
+            success: true,
+            data: [] // Return an empty array if no keyword provided
+        });
+    }
+
+    const searchRes = await query.exec();
+
+    const filteredResults = searchRes.filter(user => user._id.toString() !== req.user.id);
 
     res.status(200).json({
-        success:true,
-        data:searchRes
-    })
-})
+        success: true,
+        data: filteredResults
+    });
+});
 
 exports.friendReq = catchAsyncError(async(req,res,next)=>{
 
@@ -187,6 +196,8 @@ exports.friendReq = catchAsyncError(async(req,res,next)=>{
 
     
     await by.save();
+
+
 
     let notification ;
 
@@ -211,10 +222,19 @@ exports.friendReq = catchAsyncError(async(req,res,next)=>{
 
     notification = populatedNotification;
 
+    const user = await User.findById(req.user.id).populate({
+        path:"friendReq",
+        populate:{
+            path:"sent",
+            select:['name', 'profileImg']
+        }
+    })
+
     res.status(200).json({
         success:true,
-        message:"Request sent",
-        notification:notification?notification : null
+        message:`Friend Request sent to ${to.name}`,
+        notification:notification?notification : null,
+        sentListOfUser: user.friendReq.sent
     })
 
 })
@@ -277,8 +297,7 @@ exports.freindAcc_Rem = catchAsyncError(async(req,res,next)=>{
 
         data.success=true;
         data.notification = notification;
-        data.message="Request accepted";
-
+        data.message=`You accepted friend request from ${fri.name}`;
     }
 
 
@@ -286,8 +305,7 @@ exports.freindAcc_Rem = catchAsyncError(async(req,res,next)=>{
         const ind_fri = fri.friendReq.sent.indexOf(req.user.id);
         const ind_user = user.friendReq.got.indexOf(f_id);
         
-        console.log(`${req.user.id}->${ind_fri}`);
-        console.log(`${f_id}->${ind_user}`);
+
 
         if (ind_fri > -1) {
             fri.friendReq.sent.splice(ind_fri, 1); // Remove one element from fri.friendReq.sent
@@ -300,7 +318,7 @@ exports.freindAcc_Rem = catchAsyncError(async(req,res,next)=>{
         await user.save();
     
         data.success = true;
-        data.message = "Request removed";
+        data.message = `You removed friend request from ${fri.name}`;
     }
     
     else if(type==="remove_fri"){
@@ -309,10 +327,10 @@ exports.freindAcc_Rem = catchAsyncError(async(req,res,next)=>{
 
 
         if (ind_fri>-1){
-            fri.friendList.splice(ind_fri);
+            fri.friendList.splice(ind_fri, 1);
         }
         if(ind_user>-1){
-            user.friendList.splice(ind_user);
+            user.friendList.splice(ind_user,1);
         }
 
         await fri.save();
@@ -321,21 +339,22 @@ exports.freindAcc_Rem = catchAsyncError(async(req,res,next)=>{
         
 
         data.success=true,
-        data.message="Friend removed"
+        data.message=`You have removed ${fri.name} from your friend list`
 
 
     }
 
     else if(type==="cancel"){
 
-        const ind_fri = fri.friendReq.got.indexOf(req.user.id);
+        const ind_fri = fri.friendReq.got.indexOf(req.user._id);
         const ind_user = user.friendReq.sent.indexOf(f_id);
     
+
         if (ind_fri>-1){
-            fri.friendReq.got.splice(ind_fri);
+            fri.friendReq.got.splice(ind_fri,1);
         }
         if(ind_user>-1){
-            user.friendReq.sent.splice(ind_user);
+            user.friendReq.sent.splice(ind_user,1);
         }
 
 
@@ -343,10 +362,29 @@ exports.freindAcc_Rem = catchAsyncError(async(req,res,next)=>{
         await user.save();
 
         data.success=true,
-        data.message="Request canceled"
-
+        data.message=`You canceled friend request for ${fri.name}`
     }
 
+    const resUser = await User.findById(req.user.id).populate({
+        path:"friendList",
+        select:['name', 'profileImg']
+    }).populate({
+        path:"friendReq",
+        populate:{
+            path:"sent",
+            select:['name', 'profileImg']
+        }
+    }).populate({
+        path:"friendReq",
+        populate:{
+            path:"got",
+            select:['name', 'profileImg']
+        }
+    })
+
+
+    data.friendList = resUser.friendList
+    data.friendReq = resUser.friendReq
 
 
     res.status(200).json(data)
@@ -431,11 +469,14 @@ exports.updateProfile = catchAsyncError(async(req,res,next)=>{
             new:true,
             useFindAndModify:false
         })
+
+        const updUser = await User.findById(req.user.id);
     
         res.status(200).json({
             success:true,
             message:"Successfully updated profile",
-            type:type
+            type:type,
+            user:updUser
         })
     }
 
@@ -467,7 +508,6 @@ exports.suggestFriends = catchAsyncError(async(req, res,next)=>{
 // console.log(req.user);
 
     const currAddress = req.body;
-    console.log(currAddress);
     const recommendedUsers = await getRecommendedUsers(req.user, currAddress);
 
 

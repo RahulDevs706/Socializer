@@ -1,9 +1,11 @@
 import { AppBar, Badge, Box, Container, Tab, Tabs, Typography } from '@mui/material';
 import React, { Fragment, useEffect } from 'react'
-import { RiUserShared2Fill as SentIcon, RiUserReceivedFill as GotIcon, RiUserFill as FriendIcon} from "react-icons/ri"
+import { RiUserShared2Fill as SentIcon, RiUserReceived2Fill as GotIcon, RiUserFollowFill as FriendIcon} from "react-icons/ri"
 import { useDispatch, useSelector } from 'react-redux';
 import { clearMsg, loadUser } from '../../Redux/Slice/userSlice';
 import FriendCard from './FriendCard';
+
+
 
 function TabPanel(props) {
     const { children, value, load, index, ...other } = props;
@@ -47,13 +49,12 @@ const FriendComp = () => {
 
     useEffect(() => {
       if(success){
-        dispatch(loadUser())
         dispatch(clearMsg("FR_Canc"))
       }
     }, [success])
     
 
-    console.log(loading)
+    
 
     const fList_size = user?.friendList?.length;
     const fReqSent_size = user?.friendReq?.sent?.length;

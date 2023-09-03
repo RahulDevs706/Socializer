@@ -1,21 +1,15 @@
-import { Avatar, Box, IconButton, Paper, Typography, Card, CardHeader, Stack, Menu, MenuItem, Dialog, Slide, useMediaQuery, DialogContent, DialogTitle, Badge } from '@mui/material'
+import { Avatar, Box, IconButton, Paper, Typography, Card, CardHeader, Stack, Menu, MenuItem, Dialog, Slide, useMediaQuery, DialogContent, DialogTitle, Badge, Tooltip, CircularProgress } from '@mui/material'
 // import { Container, styled } from '@mui/system'
 import styled from "@emotion/styled/macro";
 import React, { Fragment, useState } from 'react'
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import PeopleIcon from '@mui/icons-material/People';
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import EditIcon from '@mui/icons-material/Edit';
 import EditModal from './EditProPicModal';
 import { useTheme } from '@mui/system';
-import CloseIcon from '@mui/icons-material/Close';
 import ArrowBack from '@mui/icons-material/ArrowBack';
-import CircleIcon from '@mui/icons-material/Circle';
-import Circle from '@mui/icons-material/Circle';
-import { sendFriendReq } from '../../../Redux/Slice/userSlice';
-import { RiUserShared2Fill as SentIcon, RiUserFollowFill} from "react-icons/ri"
-import {FaUserCheck as GotIcon, FaUserFriends as AddedFriend, FaUserPlus as AddFriend } from "react-icons/fa"
+import { friendReqAction, sendFriendReq } from '../../../Redux/Slice/userSlice';
+import {RiUserReceived2Fill as GotIcon, RiUserFollowFill as AddedFriend, RiUserAddFill as AddFriend, RiUserShared2Fill as SentIcon, } from "react-icons/ri"
+
 
 
 const PaperMod = styled(Box)(({theme})=>({
@@ -43,27 +37,6 @@ transition: ${theme.transitions.create(['transform', 'border'], {
 
 
 
-// const AddFriend = styled(PersonAddAlt1Icon)`
-// ${({ theme }) => `
-// cursor:pointer;
-// transition: ${theme.transitions.create(['transform'], {
-//   duration: theme.transitions.duration.shorter,
-// })};
-// &:hover {
-//   transform: scale(1.2);
-// }
-// `}`
-
-// const AddedFriend = styled(PeopleIcon)`
-// ${({ theme }) => `
-// cursor:pointer;
-// transition: ${theme.transitions.create(['transform'], {
-//   duration: theme.transitions.duration.shorter,
-// })};
-// &:hover {
-//   transform: scale(1.2);
-// }
-// `}`
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -101,15 +74,89 @@ const ViewProfilePicModal = ({ open, setOpen, image})=>{
   )
 }
 
-const StyledBadge = styled(Badge)(({ theme }) => ({
-  '& .MuiBadge-badge': {
-    backgroundColor: '#44b700',
-    color: '#44b700',
-    width: '1rem',
-    height: '1rem',
-    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-  },
-}));
+const FIconOptions = ({ open, optionFor, anchorEl, setAnchorEl, id, setLoading})=>{
+
+  const dispatch = useDispatch();
+
+  const handleClose=()=>{
+    setAnchorEl(null)
+  }
+  
+  function handleAction(type){
+    setLoading(true);
+    if(type==="accept"){
+      dispatch(friendReqAction({f_id:id, type:"accept"})).then(()=>setLoading(false)).catch(()=>setLoading(false))
+    }else if(type==="cancel"){
+      dispatch(friendReqAction({f_id:id, type:"remove_req"})).then(()=>setLoading(false)).catch(()=>setLoading(false))
+    }
+    else if(type==="remove"){
+      dispatch(friendReqAction({f_id:id, type:"remove_fri"})).then(()=>setLoading(false)).catch(()=>setLoading(false))
+    }
+    handleClose();
+  }
+
+  return(
+    <Fragment>
+      <Menu
+        id="profile-option"
+        aria-labelledby="profile-options"
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            overflow: 'visible',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+            mt: 1.5,
+            '& .MuiAvatar-root': {
+              width: 32,
+              height: 32,
+              ml: -0.5,
+              mr: 1,
+            },
+            '&:before': {
+              content: '""',
+              display: 'block',
+              position: 'absolute',
+              top: 0,
+              left: 14,
+              width: 10,
+              height: 10,
+              bgcolor: 'background.paper',
+              transform: 'translateY(-50%) rotate(45deg)',
+              zIndex: 0,
+            },
+          },
+        }}
+      >
+          {optionFor==="got_icon" &&(
+            <>
+              <MenuItem onClick={()=>handleAction("accept")}   >Accept</MenuItem>
+              <MenuItem onClick={()=>handleAction("cancel")}  >Cancel</MenuItem>
+            </>
+          )}
+
+          {optionFor==="friend_icon" &&(
+            <>
+              <MenuItem onClick={()=>handleAction("remove")}  >Remove</MenuItem>
+            </>
+          )}
+
+      </Menu>
+    </Fragment>
+  )
+}
+
+
 
 
 
@@ -119,58 +166,74 @@ const Top = ({user, showFIcon, isFriend, currId}) => {
   const [openEdit, setOpenEdit] = useState();
   const dispatch = useDispatch();
 
-  const {send} = useSelector(s=>s.user.friendReq)
   const {user:loggedInUser} = useSelector(s=>s.user)
 
+  const isFriend_ = loggedInUser?.friendList.some(fid=> fid._id===currId) // show friends icon; user is friend; redirect on user profile page; give option to remove friend
+  const isOnSent = loggedInUser?.friendReq.sent.some(fid=>fid._id===currId) // show sent icon; user sent a f req
+  const isOnGot = loggedInUser?.friendReq.got.some(fid=>fid._id===currId) // show gotIcon; user has recieved a f req; send the user on the profile page; then there give options to cancel teh req or accept
+  const [isLoading, setLoading] = useState(false);
+
   const handleAddFriend = ()=>{
-    dispatch(sendFriendReq({req_to:user._id}))
+    setLoading(true)
+    dispatch(sendFriendReq({req_to:user._id})).then(()=>setLoading(false)).catch(()=>setLoading(false))
   }
 
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [fIconAction, setFIconAction] = React.useState(null);
   const open = Boolean(anchorEl);
+  const openFOptions = Boolean(fIconAction);
 
-  const handlePostOptionOpen = (event) => {
+
+  const handleProfileOptionOpen = (event) => {
     setAnchorEl(event.currentTarget);
+  };
+
+  const handleFIconOptionOpen = (event) => {
+    setFIconAction(event.currentTarget);
   };
 
   const [openProPic, setOpenProPic] = useState(false);
 
-  const handleUpdateProfilePic=()=>{
-    
-  }
 
     console.log(showFIcon, isFriend)
 
 
   const handleClose = ()=>{
-    setAnchorEl(null)
+    setAnchorEl(null);
   }
+
+  const removeFriend=(f_id)=>{
+    setLoading(true)
+    dispatch(friendReqAction({f_id:f_id, type:'cancel'})).then(r=>setLoading(false)).catch(()=>setLoading(false))
+  }
+
 
   const  [fIcon, setFIcon] = useState();
 
   useEffect(() => {
-    if(isFriend){
-      setFIcon(<AddedFriend  fontSize="2rem" color="#fff" />)
-    }else if(!isFriend && (send?.success || loggedInUser?.friendReq?.sent?.some(i=>i?._id===currId))){
-      setFIcon(<SentIcon fontSize={"2rem"} />);
+    if(isFriend_){
+      setFIcon(<AddedFriend  fontSize="2rem" color="#fff"  />)
+    }else if(isOnSent){
+      setFIcon(<SentIcon onClick={()=>removeFriend(currId)} fontSize={"2rem"} color="#fff"  />);
     }
-    else if(!isFriend && loggedInUser?.friendReq?.got?.some(i=>i?._id===currId)){
-      setFIcon(<GotIcon fontSize={"2rem"} color="#fff" />)
+    else if(isOnGot){
+      setFIcon(<GotIcon fontSize={"2rem"} color="#fff"/>)
     }
-    else if(!isFriend){
-      setFIcon(<AddFriend onClick={handleAddFriend} style={{fontSize:"2rem", cursor:"pointer", color:"#fff"}} />)
+    else{
+      setFIcon(<AddFriend onClick={handleAddFriend} fontSize="2rem" color="#fff"  />)
     }
-  }, [isFriend, send, loggedInUser, currId])
+    if(isLoading){
+      setFIcon(<CircularProgress  sx={{ color:"#fff", disabled:true}}/>)
+    }
+  }, [isFriend_, isOnGot, isOnSent, isLoading]);
   
-
-  console.log(loggedInUser?.friendReq?.got?.some(i=>i?._id===currId))
   return (
     <Fragment>
             <PaperMod sx={{height:{sm:"55vh", xs:"75vh"}, width:"100%", borderRadius:{xs:"0% 0% 100% 48% / 55% 38% 40% 100% ", sm:"0% 0% 82% 63% / 70% 0% 54% 100% "}}} >                
 
-                    <StyledAvatar onClick={handlePostOptionOpen} sx={{height:250, width:250, flexShrink:0.5,   objectFit:"cover"}} src={user?.profileImg?.url} />
+                    <StyledAvatar onClick={handleProfileOptionOpen} sx={{height:250, width:250, flexShrink:0.5,   objectFit:"cover"}} src={user?.profileImg?.url} />
 
-                  {(!showFIcon || isFriend) && 
+                  {(!showFIcon || isFriend_) && 
                      <Menu
                      id="profile-option"
                      aria-labelledby="profile-options"
@@ -186,7 +249,7 @@ const Top = ({user, showFIcon, isFriend, currId}) => {
                        horizontal: 'center',
                      }}
                    >
-                      {(!showFIcon || isFriend) && <MenuItem  onClick={()=>{setOpenProPic(true); handleClose()}}>View Profile Picture</MenuItem>}
+                      {(!showFIcon || isFriend_) && <MenuItem  onClick={()=>{setOpenProPic(true); handleClose()}}>View Profile Picture</MenuItem>}
                       {!showFIcon && <MenuItem  onClick={()=>{setOpenEdit(true); handleClose()}}>Update Profile Picture</MenuItem>}
                      
                    </Menu>
@@ -194,17 +257,19 @@ const Top = ({user, showFIcon, isFriend, currId}) => {
                       
                   <Box flexGrow={0.1} flexItem />
                   <Box display='flex' alignItems="flex-start" justifyContent="space-evenly">
-                    <Typography gutterBottom textAlign={'center'} variant="h4" ml={2.5} mr={2} component="h2" color="white"> {user.name}</Typography>
+                    <Typography gutterBottom textAlign={'center'} variant="h4" ml={2.5} mr={2} component="h2" color="white.main"> {user.name}</Typography>
                     {showFIcon &&
-                    <IconButton>
+                    <Tooltip title='Options'>
+                      <IconButton onClick={handleFIconOptionOpen}>
                       {fIcon}
                     </IconButton>
+                    </Tooltip>
                     }
                   </Box>
             </PaperMod>
             <ViewProfilePicModal open={openProPic} setOpen={setOpenProPic} image={user?.profileImg?.url} />
             <EditModal open={openEdit} setOpen={setOpenEdit} user={user} />
-
+            {(isFriend_ || isOnGot ) &&  <FIconOptions id={currId} open={openFOptions} anchorEl={fIconAction} setAnchorEl={setFIconAction} optionFor={isOnGot?'got_icon':"friend_icon"} setLoading={setLoading} />}
     </Fragment>
   )
 }

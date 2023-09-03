@@ -29,6 +29,7 @@ const FriendCard = ({f, iconType}) => {
         }else if(action==="cancel"){
             dispatch(friendReqAction({f_id:f._id, type:"cancel"}))
         }
+        handleClose();
     }
 
     const handleClick=(to)=>{

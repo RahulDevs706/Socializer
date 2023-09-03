@@ -680,6 +680,7 @@ const userSlice = createSlice({
                 state.profileUpdate.success = true;
                 state.profileUpdate.message = action.payload.message;
                 state.profileUpdate.type = action.payload.type;
+                state.user = action.payload.user;
             }
         },
 
@@ -711,6 +712,7 @@ const userSlice = createSlice({
                 state.friendReq.send.success = true;
                 state.friendReq.send.message = action.payload.message;
                 state.friendReq.send.notification = action.payload.notification;
+                state.user.friendReq.sent =  action.payload.sentListOfUser
             }
         },
 
@@ -727,7 +729,8 @@ const userSlice = createSlice({
                 state.friendReq.accept_remove_cancel.success = true;
                 state.friendReq.accept_remove_cancel.message = action.payload.message;
                 state.friendReq.accept_remove_cancel.notification = action.payload.notification;
-
+                state.user.friendReq = action.payload.friendReq;
+                state.user.friendList = action.payload.friendList
             }
         },
 

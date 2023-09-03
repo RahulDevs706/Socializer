@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes } from 'react-router-dom'
 import Header from './Components/Layout/Header'
 import CompleteProfile from "./Components/Profile/CompleteProfile/CompleteProfile"
-import { addNotificationFromDB, addNotification_socket, getSuggestions, loadUser } from './Redux/Slice/userSlice'
+import { addNotificationFromDB, addNotification_socket, clearMsg, getSuggestions, loadUser } from './Redux/Slice/userSlice'
 import AuthorizedRoutes from './Routes/AuthoeizedRoutes'
 import Main from './Components/home'
 import Loader from "./Components/Layout/Loader/Loader"
@@ -16,13 +16,15 @@ import FriendsPage from './Components/Friends/FriendsPage'
 import SettingsPage from './Components/Profile/SettingsPage'
 import NotificationPage from "./Components/Notificaiton/NotficationPage.jsx"
 import io from 'socket.io-client'
-import axios from 'axios'
-import _ from "lodash"
+import { useSnackbar } from 'notistack'
+
 
 
 const App = () => {
   const {isLoggedIn,loadUser:load} = useSelector(state=>state.user)
   const dispatch = useDispatch();
+  const { enqueueSnackbar } = useSnackbar();
+
   useEffect(() => {
       dispatch(loadUser());
   }, [isLoggedIn, dispatch]);
@@ -48,13 +50,14 @@ React.useEffect(()=>{
 
 
 const {user, friendReq} = useSelector(state=>state.user)
-const {postLike, postComments, createPost} = useSelector(state=>state.post)
+const {postLike, postComments, createPost, deletePostState, updatePostState} = useSelector(state=>state.post)
+const {delete:commentDelete} = useSelector(s=>s.post.postComments)
 
 
 const socketRef = useRef(null);
 
 useEffect(() => {
-    socketRef.current = io("http://192.168.1.6:3001/", {
+    socketRef.current = io("http://localhost:3001/", {
         transports:['websocket']
       });
 
@@ -193,6 +196,69 @@ useEffect(() => {
 //   };
 // }, [dispatch]);
 
+const {send, accept_remove_cancel} = useSelector(s=>s.user.friendReq)
+
+// notify 
+useEffect(() => {
+  const option = {
+    anchorOrigin:{
+      vertical:"top",
+      horizontal:"center",
+    },
+    variant:"info",
+    autoHideDuration: 2000
+  }
+
+  // for posts system
+  // postLike
+  if(postLike.success===true || postLike.error===true){
+    enqueueSnackbar(postLike.message, option)
+    dispatch(clearPostMsg("PL"))
+  }
+  // post comments
+  if(postComments.create.success || postComments.create.error){
+    enqueueSnackbar(postComments.create.message, option)
+    dispatch(clearPostMsg("CC"))
+  }
+  // delete Posts
+  if(deletePostState.success || deletePostState.error){
+    enqueueSnackbar(deletePostState.message, option)
+    dispatch(clearPostMsg("PD"));
+  }
+  // update Posts
+  if(updatePostState.success || updatePostState.error){
+    enqueueSnackbar(updatePostState.message, option)
+    dispatch(clearPostMsg("UP"));
+  }
+  // comment delete
+  if(commentDelete.success || commentDelete.error){
+    enqueueSnackbar(commentDelete.message, option)
+    dispatch(clearPostMsg("DC"))
+  }
+
+  // for freinds system
+  // for sending friend req
+
+  if(send.success || send.error){
+    enqueueSnackbar(send.message, option);
+    dispatch(clearMsg("FR_send"));
+  }
+  if(accept_remove_cancel.success || accept_remove_cancel.error){
+    enqueueSnackbar(accept_remove_cancel.message, option);
+    dispatch(clearMsg("FR_Canc"));
+  }
+
+}, [
+  dispatch,
+  postLike.success, postLike.error, 
+  postComments.create.success, postComments.create.error, 
+  deletePostState.success, deletePostState.error, 
+  updatePostState.success, updatePostState.error, 
+  commentDelete.success, commentDelete.error,
+  send.success ,send.error,
+  accept_remove_cancel.success, accept_remove_cancel.error
+]);
+
 
   return (
     <Fragment>
@@ -246,17 +312,6 @@ useEffect(() => {
         </Routes>
     </Fragment>
       )}
-
-      {/* <Snackbar open={cpError} autoHideDuration={3000} onClose={()=>handleClose("cpError")}>
-        <Alert variant='filled' severity="error" onClose={()=>handleClose("cpError")} sx={{ width: '100%' }}>
-            {cpMessage}
-        </Alert>
-      </Snackbar>
-      <Snackbar open={cpSucess} autoHideDuration={3000} onClose={()=>handleClose("cpSuccess")}>
-        <Alert variant='filled' severity="success" onClose={()=>handleClose("cpSuccess")} sx={{ width: '100%' }}>
-            {cpMessage}
-        </Alert>
-      </Snackbar> */}
     </Fragment>
   )
 }

@@ -13,19 +13,18 @@ const { onlineUsers } = require('./utils/constants');
 
 const io = socketIo(httpServer);
 
-const debouncedSendNotification = {};
 
 
 io.on("connection", (socket) => {
     
-    console.log("Socket client connected");
+    // console.log("Socket client connected");
 
     socket.on("login", async (userId) => {
       try {
        if(userId){
             onlineUsers[userId] = socket.id;
-            console.log(`Socket ${socket.id} connected for user ${userId}`);
-            console.log(onlineUsers);
+            // console.log(`Socket ${socket.id} connected for user ${userId}`);
+            // console.log(onlineUsers);
        }
       } catch (error) {
         console.error(error);
@@ -37,8 +36,8 @@ io.on("connection", (socket) => {
       try {
         if (onlineUsers[userId] === socket.id) {
           onlineUsers[userId] = null;
-          console.log(`Socket ${socket.id} disconnected for user ${userId}`);
-          console.log(onlineUsers);
+          // console.log(`Socket ${socket.id} disconnected for user ${userId}`);
+          // console.log(onlineUsers);
         }
       } catch (error) {
         console.error(error);

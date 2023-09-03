@@ -35,7 +35,7 @@ const Result = ({ query}) => {
   const filterOptions = [];
 
   // filling option for filter
-  search.result.forEach(item=>{
+  search?.result?.forEach(item=>{
     const loc = `${item.address.city}, ${item.address.state}, ${item.address.country}`;
     if(!filterOptions.includes(loc)){
       filterOptions.push(loc);
@@ -69,15 +69,6 @@ const Result = ({ query}) => {
   },[searchFunc, keyword]);  
 
 
-  // React.useEffect(() => {
-    
-  //   const temp= search.result.filter(i=>{
-  //     return i._id !== user._id
-  //   })
-
-  //   setResult(temp)
-
-  // },[search.result, user]);  
 
   const handleSearch = (e)=>{
     searchFunc(e.target.value);
@@ -131,9 +122,9 @@ const Result = ({ query}) => {
               {search.loading?(<Loader />):(
                 <Box flexGrow={1} padding={2}>
                   <Grid container spacing={{ xs: 2, md: 4 }}>
-                      {result.length!==0?(result.map(i=>
+                      {result?.length!==0?(result?.map(i=>
                       <Grid sx={{margin:{xs:"auto", md:"initial"}}} item xs={12} sm={6} md={4} lg={3} key={i._id}>
-                        <ResultCard id={i._id} name={i.name} location={`${i.address.city}, ${i.address.state}, ${i.address.country}`} img={i.profileImg.url} bio={i.bio}  />
+                        <ResultCard query={query} id={i._id} name={i.name} location={`${i.address.city}, ${i.address.state}, ${i.address.country}`} img={i.profileImg.url} bio={i.bio}  />
                       </Grid>
                       )):(
                         <Box padding={2} sx={{width:"100vw", height:"50vh"}} display="flex" justifyContent="center" alignItems="center">

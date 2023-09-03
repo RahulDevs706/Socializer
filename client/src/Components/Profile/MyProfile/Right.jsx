@@ -13,6 +13,7 @@ import Tab from '@mui/material/Tab';
 import { useNavigate } from 'react-router-dom'
 import {HiSortAscending, HiSortDescending} from "react-icons/hi"
 import { useEffect } from 'react'
+import { useSelector } from 'react-redux'
 
 const asc = "ascend";
 const des = "descend";
@@ -49,38 +50,52 @@ function TabPanel(props) {
 
 
 
-const Right = ({posts}) => {
+const Right = () => {
 
-  const [allPosts, setAllPost] = useState(posts);
-  const [sortType, setSortType] = useState(asc);
+  const {getProfilePosts:proPosts} = useSelector(s=>s.post)
 
-  const sortedPost_asc = posts && posts.slice().sort((p1, p2)=>{
+  const [allPostsArray, setAllPostsArray] = useState(proPosts?.posts);
+  const [customSortedPostsArray, setCustomSortedPostsArray] = useState(
+    proPosts?.posts
+  );
+
+  const [currentSortOrder, setCurrentSortOrder] = useState(asc); // Default to ascending
+
+
+
+// Define your custom sorting logic functions based on the selected sorting order
+const sortingFunctions = {
+  [asc]: (p1, p2) => {
     const p1_d = new Date(p1.createdAt);
     const p2_d = new Date(p2.createdAt);
-    return p2_d-p1_d;
-  });
-
-  const sortedPost_most_liked = sortedPost_asc && sortedPost_asc.slice().sort((p1, p2)=>{
+    return p2_d - p1_d;
+  },
+  [des]: (p1, p2) => {
+    const p1_d = new Date(p1.createdAt);
+    const p2_d = new Date(p2.createdAt);
+    return p1_d - p2_d;
+  },
+  [most_L]: (p1, p2) => {
     const p1_L = p1.likedBy.length;
     const p2_L = p2.likedBy.length;
-    return p2_L-p1_L;
-  });
-
-  
-
-  const sortedPost_most_commented = sortedPost_asc && sortedPost_asc.slice().sort((p1, p2)=>{
+    return p2_L - p1_L;
+  },
+  [most_C]: (p1, p2) => {
     const p1_C = p1.comments.length;
     const p2_C = p2.comments.length;
-    return p2_C-p1_C;
-  });
+    return p2_C - p1_C;
+  },
+};
 
   
-  useEffect(() => {
-    if(sortType===asc) setAllPost(sortedPost_asc);
-    else if(sortType===des) setAllPost(posts);
-    else if(sortType===most_L) setAllPost(sortedPost_most_liked);
-    else if(sortType===most_C) setAllPost(sortedPost_most_commented);
-  }, [sortType])
+useEffect(() => {
+  // When proPosts?.posts is updated, update both arrays with the new data
+  setAllPostsArray(proPosts?.posts);
+
+  // Sort the customSortedPostsArray using the selected sorting function
+  const sortedPosts = [...proPosts?.posts].sort(sortingFunctions[currentSortOrder]);
+  setCustomSortedPostsArray(sortedPosts);
+}, [proPosts?.posts, currentSortOrder]);
 
   const navigate = useNavigate()
 
@@ -114,10 +129,10 @@ const Right = ({posts}) => {
 
 
   const handleSort=(type)=>{
-    setSortType(type)
-
+    setCurrentSortOrder(type)
     handleClose();
   }
+
 
 
 
@@ -128,9 +143,9 @@ const Right = ({posts}) => {
           <Stack spacing={2} display="flex" justifyContent="flexStart" alignItems="flexStart" >
             <Card>
                 <CardHeader 
-                    title={<Typography color="primary" variant="h5" component="p">Posts <Typography color="primary.light"  sx={{pl:1.2}} variant="h6" component="span">{posts?.length}</Typography></Typography>} 
+                    title={<Typography color="primary" variant="h5" component="p">Posts <Typography color="primary.light"  sx={{pl:1.2}} variant="h6" component="span">{proPosts?.posts?.length}</Typography></Typography>} 
                     action={<>
-                      <IconButton disabled={posts && posts.length===0?true:false} onClick={handlePostOption_open}  aria-label="settings">
+                      <IconButton disabled={proPosts?.posts && proPosts?.posts.length===0?true:false} onClick={handlePostOption_open}  aria-label="settings">
                           <MoreVertIcon color="primary" />
                       </IconButton>
                       <Menu
@@ -185,18 +200,30 @@ const Right = ({posts}) => {
 
                 </CardActions>
             </Card>
-                <TabPanel value={value} index={0}>
-                    <Stack spacing={2}>
-                        {allPosts?.map((item)=>{
-                            const createdAt = moment(item?.createdAt).calendar();
-                            return <PostCard createdBy={item.createdBy._id} likedBy={item.likedBy} key={item._id} id={item._id} avatarImg={item.createdBy.profileImg.url} name={item.createdBy.name} createdAt={createdAt} postImg={item?.postImg?.url} postText={item?.postText} comments={item.comments}   />
-                        })}
-                    </Stack>
-                </TabPanel>
-                
+            <TabPanel value={value} index={0}>
+              <Stack spacing={2}>
+                {customSortedPostsArray?.map((item) => {
+                  const createdAt = moment(item?.createdAt).calendar();
+                  return (
+                    <PostCard
+                      createdBy={item.createdBy._id}
+                      likedBy={item.likedBy}
+                      key={item._id}
+                      id={item._id}
+                      avatarImg={item.createdBy.profileImg.url}
+                      name={item.createdBy.name}
+                      createdAt={createdAt}
+                      postImg={item?.postImg?.url}
+                      postText={item?.postText}
+                      comments={item.comments}
+                    />
+                  );
+                })}
+              </Stack>
+            </TabPanel>
                 <TabPanel value={value} index={1}>
                     <ImageList  sx={{ width: "100%"}} gap={8} cols={3} >
-                        {allPosts?.map((item) => (
+                        {customSortedPostsArray?.map((item) => (
                             <ImageListItem onClick={()=>handlePost(item._id, item.createdBy._id)} sx={{cursor:'pointer'}} key={item._id}>
                                 <img
                                     src={`${item?.postImg?.url}?w=164&h=164&fit=crop&auto=format`}

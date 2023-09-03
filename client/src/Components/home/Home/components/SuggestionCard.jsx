@@ -6,6 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import { getSuggestions, sendFriendReq, clearMsg } from '../../../../Redux/Slice/userSlice';
 import _ from "lodash"
 
+import {
+  RiUserAddFill as AddIcon, 
+} from 'react-icons/ri'
+
 
 const CardLoader = ()=>{
     return(
@@ -68,7 +72,9 @@ const SuggestionCard = ({f, address}) => {
               <Stack width="100%" spacing={1}>
                 <Typography color="primary" sx={{cursor:'pointer'}}  onClick={()=>handleProfileClick(f._id)}>{f.name}</Typography>
                 <Box>
-                    <Button onClick={()=>onAddFriend()} variant="contained" fullWidth>Add</Button>
+                    <Button onClick={()=>onAddFriend()} variant="contained" fullWidth>
+                      <AddIcon fontSize={"1.5rem"} color='#fff' cursor='pointer'  />
+                    </Button>
                 </Box>
               </Stack>
             </Stack>

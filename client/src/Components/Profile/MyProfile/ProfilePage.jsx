@@ -7,7 +7,7 @@ import Right from "./Right.jsx"
 import {useDispatch, useSelector} from "react-redux"
 import { viewProfile } from '../../../Redux/Slice/userSlice.js';
 import { Box, Container } from '@mui/system';
-import { clearPostMsg } from '../../../Redux/Slice/postSlice.js';
+import { clearPostMsg, getProfilePostsfun } from '../../../Redux/Slice/postSlice.js';
 import Loader from '../../Layout/Loader/Loader.jsx';
 import LockIcon from '@mui/icons-material/Lock';
 
@@ -37,14 +37,30 @@ const ProfilePage = () => {
   const dispatch = useDispatch();
   const {id} = useParams();
 
+  
   useEffect(() => {
     dispatch(viewProfile(id))
+    dispatch(getProfilePostsfun(id));
   }, [dispatch, id]);
+  
+  const {getProfilePosts:proPosts} = useSelector(s=>s.post)
+
+  const [posts, setPosts] = useState([]);
 
 
-  useEffect(() => {
-    dispatch(clearPostMsg("CLEAR_POST_STATE"));
-  }, []);
+  useEffect(()=>{
+    if(proPosts?.success){
+      setPosts(proPosts?.posts);
+    }
+  },[proPosts?.success, proPosts?.posts]);
+  
+  
+
+
+  
+  // useEffect(() => {
+  //   dispatch(clearPostMsg("CLEAR_POST_STATE"));
+  // }, []);
 
   const [showFIcon, setShowFIcon] = useState();
   const [isFriend, setIsFriend] = useState();
@@ -52,7 +68,6 @@ const ProfilePage = () => {
   const {user, loading} = useSelector(s=>s.user.profile);
 
   const {user:loggedInUser} = useSelector(s=>s.user)
-  const {profileUpdate} = useSelector(s=>s.user)
 
   const currUserID= user?._id
   const isPrivate = user.accountType==="private" ? true:false;
@@ -90,6 +105,7 @@ const ProfilePage = () => {
     else setShowFIcon(true);
   }, [currUserID, loggedInUser?._id])
 
+  console.log(posts)
 
 
 
@@ -110,7 +126,7 @@ const ProfilePage = () => {
                         <Left user={user} isMyAcc={!showFIcon} />
                       </Grid>
                       <Grid item xs={12} sx={{pl:0}} sm={6}>
-                        <Right posts={user.createdPost} />
+                        <Right />
                       </Grid>
                     </Grid>
                   )}
